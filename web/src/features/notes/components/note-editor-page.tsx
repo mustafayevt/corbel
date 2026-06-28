@@ -9,7 +9,7 @@ import { useNote } from '@/features/notes/api/get-note';
 import { notesKeys } from '@/features/notes/api/notes-keys';
 import type { NoteFormValues } from '@/features/notes/types/note-schemas';
 import { useDocumentTitle } from '@/hooks/use-document-title';
-import { applyProblemDetails, getErrorMessage } from '@/lib/problem';
+import { applyProblemOrFormError, getErrorMessage } from '@/lib/problem';
 import { $api } from '@/lib/react-query';
 import { NoteForm } from './note-form';
 
@@ -37,12 +37,14 @@ export function NoteEditorPage() {
   const handleSubmit = (values: NoteFormValues, setError: UseFormSetError<NoteFormValues>) => {
     setFormError(null);
 
-    const onError = (error: unknown) => {
-      const hadFieldErrors = applyProblemDetails(error, setError, ['title', 'content']);
-      if (!hadFieldErrors) {
-        setFormError(getErrorMessage(error, 'Could not save the note.'));
-      }
-    };
+    const onError = (error: unknown) =>
+      applyProblemOrFormError(
+        error,
+        setError,
+        ['title', 'content'],
+        setFormError,
+        'Could not save the note.',
+      );
     const onSuccess = async () => {
       await queryClient.invalidateQueries({ queryKey: notesKeys.list() });
       if (isEdit && id) {

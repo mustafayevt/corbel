@@ -11,7 +11,7 @@ import { decodeUser } from '@/features/auth/api/decode-user';
 import { useAuthStore } from '@/features/auth/stores/auth-store';
 import { type LoginValues, loginSchema } from '@/features/auth/types/auth-schemas';
 import { monitoring } from '@/lib/monitoring';
-import { applyProblemDetails, asProblem, getErrorMessage } from '@/lib/problem';
+import { applyProblemOrFormError, asProblem, getErrorMessage } from '@/lib/problem';
 import { $api } from '@/lib/react-query';
 import { ErrorCode } from '@/types/api';
 import { AuthScreen } from './auth-screen';
@@ -82,18 +82,14 @@ export function LoginPage() {
           monitoring.setUser({ id: user.id, email: user.email });
           navigate(returnTo, { replace: true });
         },
-        onError: (error) => {
-          const hadFieldErrors = applyProblemDetails(error, setError, ['email', 'password']);
-          if (!hadFieldErrors) {
-            // Tailor the locked-account case the API signals with a stable error code; everything else falls
-            // back to the generic credentials message (which never reveals whether the email exists).
-            setFormError(
-              asProblem(error)?.errorCode === ErrorCode.AccountLocked
-                ? 'Your account is temporarily locked after too many attempts. Please try again later.'
-                : getErrorMessage(error, 'Invalid email or password.'),
-            );
-          }
-        },
+        // Tailor the locked-account case the API signals with a stable error code; everything else falls back
+        // to the generic credentials message (which never reveals whether the email exists).
+        onError: (error) =>
+          applyProblemOrFormError(error, setError, ['email', 'password'], setFormError, (err) =>
+            asProblem(err)?.errorCode === ErrorCode.AccountLocked
+              ? 'Your account is temporarily locked after too many attempts. Please try again later.'
+              : getErrorMessage(err, 'Invalid email or password.'),
+          ),
       },
     );
   });

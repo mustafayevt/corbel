@@ -3,7 +3,6 @@ import type { components } from './schema';
 /** Convenience aliases over the generated component schemas, so features import friendly names. */
 export type Note = components['schemas']['NoteResponse'];
 export type NotesPage = components['schemas']['PagedResultOfNoteResponse'];
-export type AuthResponse = components['schemas']['TokenResponse'];
 
 /**
  * RFC 9457 ProblemDetails as returned by the API's GlobalExceptionHandler — derived from the generated schema so
@@ -33,8 +32,6 @@ export const ErrorCode = {
   NoteNotFound: 'note.not_found',
   NoteAlreadyArchived: 'note.already_archived',
 } as const;
-
-export type ErrorCodeValue = (typeof ErrorCode)[keyof typeof ErrorCode];
 
 /** Narrows an unknown thrown value (openapi-fetch surfaces the parsed JSON body) to ProblemDetails. */
 export function isProblemDetails(value: unknown): value is ProblemDetails {

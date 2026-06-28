@@ -47,3 +47,22 @@ export function applyProblemDetails<TFieldValues extends FieldValues>(
   }
   return applied;
 }
+
+/**
+ * The shared submit-error handler for the app's forms: map a 400 ProblemDetails onto field errors and, when
+ * none applied, surface a single form-level message via `setFormError`. `fallback` may be a function so a caller
+ * can tailor the message (e.g. branch on a specific `errorCode`); otherwise the server's detail/title is used,
+ * falling back to the given string.
+ */
+export function applyProblemOrFormError<TFieldValues extends FieldValues>(
+  error: unknown,
+  setError: UseFormSetError<TFieldValues>,
+  knownFields: readonly Path<TFieldValues>[],
+  setFormError: (message: string) => void,
+  fallback: string | ((error: unknown) => string),
+): void {
+  if (applyProblemDetails(error, setError, knownFields)) {
+    return;
+  }
+  setFormError(typeof fallback === 'function' ? fallback(error) : getErrorMessage(error, fallback));
+}

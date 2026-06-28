@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { useAuthStore } from '@/features/auth/stores/auth-store';
 import { type RegisterValues, registerSchema } from '@/features/auth/types/auth-schemas';
-import { applyProblemDetails, getErrorMessage } from '@/lib/problem';
+import { applyProblemOrFormError } from '@/lib/problem';
 import { $api } from '@/lib/react-query';
 import { AuthScreen } from './auth-screen';
 
@@ -47,16 +47,14 @@ export function RegisterPage() {
             state: { notice: 'Account created. Please sign in.' },
           });
         },
-        onError: (error) => {
-          const hadFieldErrors = applyProblemDetails(error, setError, [
-            'email',
-            'password',
-            'displayName',
-          ]);
-          if (!hadFieldErrors) {
-            setFormError(getErrorMessage(error, 'Could not create your account.'));
-          }
-        },
+        onError: (error) =>
+          applyProblemOrFormError(
+            error,
+            setError,
+            ['email', 'password', 'displayName'],
+            setFormError,
+            'Could not create your account.',
+          ),
       },
     );
   });

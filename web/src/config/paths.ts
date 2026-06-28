@@ -10,7 +10,6 @@ export const paths = {
   },
   register: { path: '/register' },
   notes: {
-    root: { path: '/' },
     new: { path: 'notes/new', getHref: () => '/notes/new' },
     detail: { path: 'notes/:id', getHref: (id: string) => `/notes/${id}` },
   },
