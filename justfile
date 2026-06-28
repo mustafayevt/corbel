@@ -21,6 +21,9 @@ tools:
 # into user-secrets (no secrets ship in the repo), and create .env.
 bootstrap: tools
     dotnet dev-certs https --trust
+    # Install the repo-root dev tooling so the Biome pre-commit hook (husky) is wired up locally. Non-fatal
+    # (leading '-'): CI enforces the same lint/format checks regardless, so a missing pnpm shouldn't block setup.
+    -pnpm install
     @if dotnet user-secrets list --project {{api}} 2>/dev/null | grep -q '^Jwt:SigningKey'; then \
         echo "Jwt:SigningKey already set in user-secrets; leaving it."; \
     else \

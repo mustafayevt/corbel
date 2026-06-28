@@ -129,6 +129,7 @@ public sealed class CreateWidgetEndpoint : IEndpoint
     public void MapEndpoint(IEndpointRouteBuilder app) =>            // app is the "/api" group
         app.MapPost("widgets", (CreateWidgetCommand cmd, ISender sender, CancellationToken ct) => sender.Send(cmd, ct))
             .WithName("CreateWidget").WithTags("Widgets")
+            .WithSummary("Create a widget.")                         // flows into the OpenAPI doc + Scalar UI
             .RequireAuthorization();
 }
 ```
@@ -139,6 +140,10 @@ wraps them in one unit of work; **queries** are plain `IRequest<T>`. Validation 
 fields; otherwise use a `XxxRequest` body record and merge the route id (see `Features/Notes/UpdateNote.cs`).
 `Features/Notes/` is a complete, copy-friendly reference (create / list / get / update / archive / delete);
 `Features/Auth/` shows the auth slices and `Features/Admin/AdminPing.cs` shows a role-gated endpoint.
+
+Document each endpoint with `.WithSummary()` / `.WithDescription()` — they flow into the OpenAPI document and the
+Scalar UI. Richer per-operation metadata (parameter descriptions, request/response examples) and the document-wide
+top matter (info, tags, auth schemes, the `errorCode` enum) live in the transformers under `src/Corbel.Api/Setup/`.
 
 After changing API contracts, regenerate the typed frontend client (see `web/` for the generator):
 
@@ -171,6 +176,7 @@ the matching files and folders. Review with `git diff`, then `dotnet build && ju
 Then do the manual one-time edits (your owner/org and contacts are unknowable to the script):
 
 - [ ] `README.md` — replace `your-org` in the CI badge URLs (top of this file) with your GitHub `owner/repo`.
+      (The OpenAPI contact URL in `src/Corbel.Api/Setup/DocumentInfoTransformer.cs` uses the same placeholder.)
 - [ ] `SECURITY.md` — set the private security-contact address (the `security@example.com` placeholder).
 - [ ] On GitHub, set the repo **About** blurb and topics (e.g. `dotnet`, `aspnetcore`, `react`, `vite`,
       `vertical-slice`, `template`) so others can discover it.
@@ -210,6 +216,10 @@ LICENSE                   MIT
 Issues and PRs are welcome. Commit messages follow
 [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/); please report security issues privately
 per [SECURITY.md](SECURITY.md).
+
+`just bootstrap` also installs a Biome pre-commit hook (husky + lint-staged) that formats and lints staged files
+(set it up on its own with a repo-root `pnpm install`). CI runs the same `dotnet format`, Biome and architecture
+checks on every push, so the hook is a convenience — not a gate you can bypass.
 
 ## License
 

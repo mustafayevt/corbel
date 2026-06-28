@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 #
-# Multi-stage build for the Corbel API. Build context is the REPOSITORY ROOT (see docker-compose.yml)
+# Multi-stage build for the Corbel API. Build context is the REPOSITORY ROOT (see compose.yaml)
 # so the central build props / package manifest and the ServiceDefaults project are available.
 
 # ---- build ----
