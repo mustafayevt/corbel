@@ -1,0 +1,13 @@
+{
+  "name": "corbel-tooling",
+  "private": true,
+  "description": "Repo-root dev tooling only (Git hooks). The app lives in web/ and the API in src/.",
+  "packageManager": "pnpm@9.15.0",
+  "devDependencies": {
+    "husky": "9.1.7",
+    "lint-staged": "15.5.2"
+  },
+  "scripts": {
+    "prepare": "husky"
+  }
+}

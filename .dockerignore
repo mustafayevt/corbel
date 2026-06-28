@@ -1,0 +1,24 @@
+# Build output / VCS / editor noise
+**/bin
+**/obj
+**/node_modules
+**/dist
+**/.git
+**/.vs
+**/.idea
+**/.vscode
+**/*.user
+**/TestResults
+**/.DS_Store
+
+# Secrets: never let a local .env leak into the build context (the API reads config via env vars at run time).
+.env
+**/.env
+
+# Not needed by the API image build (context is the repo root; only src/ + the root manifests are used).
+web/
+tests/
+docs/
+.github/
+.config/
+**/*.md

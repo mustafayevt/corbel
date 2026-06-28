@@ -1,0 +1,20 @@
+# Normalize line endings to LF on checkout/commit (the owner works on macOS + Windows; .editorconfig only
+# governs editors, so this stops CRLF from fighting `dotnet format` / Biome in CI).
+* text=auto eol=lf
+
+*.sh    text eol=lf
+*.cs    text eol=lf
+*.csproj text eol=lf
+*.props text eol=lf
+*.json  text eol=lf
+*.yaml  text eol=lf
+*.yml   text eol=lf
+pnpm-lock.yaml text eol=lf
+
+# Binary assets
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.woff binary
+*.woff2 binary

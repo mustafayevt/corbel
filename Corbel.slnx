@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Corbel.Api/Corbel.Api.csproj" />
+    <Project Path="src/Corbel.AppHost/Corbel.AppHost.csproj" />
+    <Project Path="src/Corbel.ServiceDefaults/Corbel.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Corbel.Api.Tests/Corbel.Api.Tests.csproj" />
+  </Folder>
+</Solution>

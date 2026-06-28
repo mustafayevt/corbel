@@ -1,0 +1,28 @@
+<Project>
+
+  <!-- Shared MSBuild settings applied to every project in the solution. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Don't force XML docs on every public member; OpenAPI uses the ones we do write. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!-- Audit all (direct + transitive) packages for advisories; NU190x become errors in CI (warnings-as-errors). -->
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>moderate</NuGetAuditLevel>
+  </PropertyGroup>
+
+  <!--
+    Warnings stay warnings locally (so AI-assisted drafts still compile in the inner loop)
+    and are promoted to errors only in CI, which passes -p:ContinuousIntegrationBuild=true.
+  -->
+  <PropertyGroup Condition="'$(ContinuousIntegrationBuild)' == 'true'">
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+</Project>
