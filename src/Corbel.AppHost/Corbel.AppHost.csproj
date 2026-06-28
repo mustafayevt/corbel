@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Sdk Name="Aspire.AppHost.Sdk" Version="13.4.0" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- Explicit here (not just inherited from Directory.Build.props) so Rider/VS resolve the TFM for the Aspire-SDK run config. -->
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Corbel.AppHost</RootNamespace>
+    <IsAspireHost>true</IsAspireHost>
+    <UserSecretsId>corbel-apphost</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+    <PackageReference Include="Aspire.Hosting.JavaScript" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Corbel.Api/Corbel.Api.csproj" />
+  </ItemGroup>
+
+</Project>
