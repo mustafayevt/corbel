@@ -13,6 +13,12 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Archive a note.
+         * @description Marks the caller's note as archived. Archiving an already-archived note violates a domain invariant and is rejected with 422.
+         *
+         *     **Errors:** 401 `common.unauthorized`, 404 `note.not_found`, 409 `common.concurrency_conflict`, 422 `note.already_archived`, 429 `common.rate_limited`.
+         */
         post: operations["ArchiveNote"];
         delete?: never;
         options?: never;
@@ -27,8 +33,20 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List the caller's notes.
+         * @description Returns a page of the authenticated caller's notes, newest first, in the standard paged envelope. Filter with `search` (case-insensitive substring over title and content; LIKE wildcards are literal).
+         *
+         *     **Errors:** 401 `common.unauthorized`, 429 `common.rate_limited`.
+         */
         get: operations["ListNotes"];
         put?: never;
+        /**
+         * Create a note.
+         * @description Creates a note owned by the authenticated caller and returns it; the new note's URL is in the `Location` header.
+         *
+         *     **Errors:** 400 `common.validation`, 401 `common.unauthorized`, 429 `common.rate_limited`.
+         */
         post: operations["CreateNote"];
         delete?: never;
         options?: never;
@@ -43,9 +61,27 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get a note by id.
+         * @description Returns the caller's note. A note that doesn't exist — or exists but belongs to another user — returns the same 404 (ownership is never disclosed).
+         *
+         *     **Errors:** 401 `common.unauthorized`, 404 `note.not_found`, 429 `common.rate_limited`.
+         */
         get: operations["GetNote"];
+        /**
+         * Replace a note's title and content.
+         * @description Updates a note the caller owns. A missing or not-owned note returns the same 404 (ownership is never disclosed).
+         *
+         *     **Errors:** 400 `common.validation`, 401 `common.unauthorized`, 404 `note.not_found`, 409 `common.concurrency_conflict`, 429 `common.rate_limited`.
+         */
         put: operations["UpdateNote"];
         post?: never;
+        /**
+         * Delete a note.
+         * @description Soft-deletes the caller's note (flagged deleted, not physically removed). Returns 204 on success; a missing or not-owned note returns 404.
+         *
+         *     **Errors:** 401 `common.unauthorized`, 404 `note.not_found`, 409 `common.concurrency_conflict`, 429 `common.rate_limited`.
+         */
         delete: operations["DeleteNote"];
         options?: never;
         head?: never;
@@ -61,6 +97,12 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Change the current user's password.
+         * @description Verifies the current password, sets the new one, and revokes every other session (the caller's cookies are cleared, so they must sign in again).
+         *
+         *     **Errors:** 400 `common.validation` (wrong current password or weak new one), 401 `common.unauthorized`, 429 `common.rate_limited`.
+         */
         post: operations["ChangePassword"];
         delete?: never;
         options?: never;
@@ -77,6 +119,12 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Sign in and obtain an access token.
+         * @description Verifies credentials and issues a short-lived JWT access token plus a refresh token (delivered per the `useCookies` transport selector). An unknown email, a wrong password, and a locked account all return the same 401 (anti-enumeration).
+         *
+         *     **Errors:** 401 `auth.invalid_credentials` or `auth.account_locked`, 400 `common.validation`, 429 `common.rate_limited`.
+         */
         post: operations["Login"];
         delete?: never;
         options?: never;
@@ -93,6 +141,12 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Sign out and revoke the refresh token.
+         * @description Revokes the presented refresh token's whole family and clears the auth cookies. Allowed anonymously so an expired access token can still sign out; cookie mode requires a valid CSRF token.
+         *
+         *     **Errors:** 403 `common.forbidden` (missing/invalid CSRF), 429 `common.rate_limited`.
+         */
         post: operations["Logout"];
         delete?: never;
         options?: never;
@@ -107,6 +161,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get the current user's profile.
+         * @description Returns the authenticated caller's identity and roles. In cookie mode the access token isn't readable by JS, so the SPA calls this on load to hydrate the session.
+         *
+         *     **Errors:** 401 `common.unauthorized`, 429 `common.rate_limited`.
+         */
         get: operations["Me"];
         put?: never;
         post?: never;
@@ -125,6 +185,12 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Exchange a refresh token for a new access token.
+         * @description Rotates the refresh token (the presented one is invalidated) and returns a fresh access token. In cookie mode the token is read from the httpOnly cookie and a valid CSRF token is required; in bearer mode it comes from the body. Replaying an already-rotated token revokes the whole family.
+         *
+         *     **Errors:** 401 `auth.invalid_token` / `auth.token_reuse_detected` / `auth.account_locked`, 403 `common.forbidden` (missing/invalid CSRF), 429 `common.rate_limited`.
+         */
         post: operations["Refresh"];
         delete?: never;
         options?: never;
@@ -141,6 +207,12 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Register a new account.
+         * @description Creates a user with the default role. To prevent account enumeration, the response is an identical acknowledgement whether or not the email was already registered — this endpoint never returns 409.
+         *
+         *     **Errors:** 400 `common.validation`, 429 `common.rate_limited`.
+         */
         post: operations["Register"];
         delete?: never;
         options?: never;
@@ -155,6 +227,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Admin-only ping.
+         * @description Returns a simple acknowledgement. Requires the `Admin` role; an authenticated caller without it gets 403.
+         *
+         *     **Errors:** 401 `common.unauthorized`, 403 `common.forbidden`, 429 `common.rate_limited`.
+         */
         get: operations["AdminPing"];
         put?: never;
         post?: never;
@@ -168,17 +246,21 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        AdminPingResponse: {
-            message: string;
-        };
+        /** @description A password-change request for the current user. */
         ChangePasswordRequest: {
+            /** @description The caller's current password. */
             currentPassword: string;
+            /** @description The new password. Must meet the complexity policy and differ from the current one. */
             newPassword: string;
         };
+        /** @description A note to create. */
         CreateNoteRequest: {
+            /** @description The note's title (required). */
             title: string;
+            /** @description The note's body (optional). */
             content: null | string;
         };
+        /** @description RFC 9457 problem document for a validation failure (400): an `errors` map of field name → messages, alongside the machine-readable `errorCode` and a correlation `traceId`. */
         HttpValidationProblemDetails: {
             type?: null | string;
             title?: null | string;
@@ -189,52 +271,88 @@ export interface components {
             errors?: {
                 [key: string]: string[];
             };
-            errorCode?: string;
+            /**
+             * @description Stable, machine-readable code identifying the specific failure, decoupled from the HTTP status. One of the values in this enum.
+             * @enum {string}
+             */
+            errorCode?: "auth.account_locked" | "auth.invalid_credentials" | "auth.invalid_token" | "auth.token_reuse_detected" | "common.concurrency_conflict" | "common.forbidden" | "common.not_found" | "common.rate_limited" | "common.unauthorized" | "common.unexpected" | "common.validation" | "note.already_archived" | "note.not_found";
+            /** @description Correlation id for this request; matches the entry in the server logs/traces. */
             traceId?: string;
         };
-        /** @description UseCookies selects the transport: true (browser default) sets the httpOnly refresh cookie + CSRF; false returns the refresh token in the body (mobile/bearer). */
+        /** @description Credentials plus the transport selector for a sign-in request. */
         LoginRequest: {
+            /** @description The account's email address. */
             email: string;
+            /** @description The account's password. */
             password: string;
-            /** @default true */
+            /**
+             * @description Selects the transport: `true` (the browser default) sets the httpOnly refresh cookie + CSRF token and omits the refresh token from the body; `false` returns the refresh token in the body (native/bearer clients).
+             * @default true
+             */
             useCookies?: boolean;
         };
         /** @description Bearer-mode body; in cookie mode the refresh token is read from the httpOnly cookie. */
         LogoutRequest: {
+            /** @description The raw refresh token to revoke (bearer mode only). Leave null in cookie mode. */
             refreshToken: null | string;
         };
-        /** @description A generic, non-revealing acknowledgement returned by flows that must not leak account existence. */
+        /** @description A simple `{ message }` envelope for endpoints that return only a human-readable acknowledgement. */
         MessageResponse: {
+            /** @description A short, client-safe message describing the outcome. */
             message: string;
         };
         /**
-         * @description The wire contract for a note. The entity is never serialized directly — slices project to this record (via
-         *     Expression&lt;Func&lt;Note, NoteResponse&gt;&gt; NoteResponse.Projection in SQL, or NoteResponse NoteResponse.From(Note note) for an already-loaded entity), so the API surface stays
-         *     decoupled from the persistence model.
+         * @description The wire contract for a note. The entity is never serialized directly — slices project to this record so the
+         *     API surface stays decoupled from the persistence model.
          */
         NoteResponse: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The note's unique identifier.
+             */
             id: string;
+            /** @description The note's title. */
             title: string;
+            /** @description The note's body (empty string when it has no content). */
             content: string;
+            /** @description Whether the note has been archived. */
             isArchived: boolean;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description When the note was created (UTC).
+             */
             createdAtUtc: string;
         };
-        /** @description Consistent list envelope returned by every paginated endpoint → generates a clean PagedResult&lt;T&gt; in the TS client. */
+        /** @description The standard envelope for a paginated list response: the page of items plus the paging metadata a client needs to render controls. */
         PagedResultOfNoteResponse: {
+            /** @description The items on the current page. */
             items: components["schemas"]["NoteResponse"][];
-            /** Format: int32 */
+            /**
+             * Format: int32
+             * @description The 1-based page number this result represents.
+             */
             page: number;
-            /** Format: int32 */
+            /**
+             * Format: int32
+             * @description The maximum number of items per page.
+             */
             pageSize: number;
-            /** Format: int32 */
+            /**
+             * Format: int32
+             * @description The total number of items across all pages (after any filter).
+             */
             totalCount: number;
-            /** Format: int32 */
+            /**
+             * Format: int32
+             * @description The total number of pages across the result set.
+             */
             totalPages: number;
+            /** @description `true` when a page after this one exists. */
             hasNext: boolean;
+            /** @description `true` when a page before this one exists. */
             hasPrevious: boolean;
         };
+        /** @description RFC 9457 problem document returned for every error response: carries a machine-readable `errorCode` and a correlation `traceId` (matching the server logs/traces). */
         ProblemDetails: {
             type?: null | string;
             title?: null | string;
@@ -242,36 +360,59 @@ export interface components {
             status?: null | number;
             detail?: null | string;
             instance?: null | string;
-            errorCode?: string;
+            /**
+             * @description Stable, machine-readable code identifying the specific failure, decoupled from the HTTP status. One of the values in this enum.
+             * @enum {string}
+             */
+            errorCode?: "auth.account_locked" | "auth.invalid_credentials" | "auth.invalid_token" | "auth.token_reuse_detected" | "common.concurrency_conflict" | "common.forbidden" | "common.not_found" | "common.rate_limited" | "common.unauthorized" | "common.unexpected" | "common.validation" | "note.already_archived" | "note.not_found";
+            /** @description Correlation id for this request; matches the entry in the server logs/traces. */
             traceId?: string;
         };
         /** @description Bearer-mode request body. In cookie mode the token is read from the httpOnly cookie instead. */
         RefreshRequest: {
+            /** @description The raw refresh token (bearer mode only). Leave null in cookie mode. */
             refreshToken: null | string;
         };
+        /** @description A new-account registration request. */
         RegisterRequest: {
+            /** @description The email address to register; also becomes the username. */
             email: string;
+            /** @description The account password. Must meet the complexity policy (min length, upper, lower, digit). */
             password: string;
+            /** @description An optional display name. */
             displayName: null | string;
         };
-        /** @description Access token plus, in bearer mode, the raw refresh token. In cookie mode string? TokenResponse.RefreshToken is null (it rides an httpOnly cookie). */
+        /** @description The result of a successful sign-in or refresh: a short-lived access token, plus the refresh token in bearer mode only. */
         TokenResponse: {
+            /** @description The JWT access token to send as `Authorization: Bearer &lt;token&gt;` on subsequent requests. */
             accessToken: string;
-            /** Format: int32 */
+            /**
+             * Format: int32
+             * @description Lifetime of the access token, in seconds from now.
+             */
             expiresIn: number;
+            /** @description The raw refresh token in bearer mode; `null` in cookie mode, where it is set as an httpOnly cookie instead. */
             refreshToken: null | string;
         };
         /** @description The mutable body — the id is taken from the route, so it never appears in the request schema. */
         UpdateNoteRequest: {
+            /** @description The note's new title (required). */
             title: string;
+            /** @description The note's new body (optional). */
             content: null | string;
         };
         /** @description The authenticated user's public profile, shaped for the SPA. */
         UserResponse: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The user's unique identifier.
+             */
             id: string;
+            /** @description The user's email address (also the username). */
             email: string;
+            /** @description An optional display name; `null` if the user didn't set one. */
             displayName: null | string;
+            /** @description The roles granted to the user (e.g. `User`, `Admin`). */
             roles: string[];
         };
     };
@@ -288,6 +429,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description The note's unique identifier (GUID). */
                 id: string;
             };
             cookie?: never;
@@ -353,8 +495,11 @@ export interface operations {
     ListNotes: {
         parameters: {
             query?: {
+                /** @description 1-based page number. Defaults to 1; clamped to the range 1–100000. */
                 page?: number;
+                /** @description Items per page. Defaults to 20; clamped to the range 1–100. */
                 pageSize?: number;
+                /** @description Optional case-insensitive substring matched against each note's title and content. LIKE wildcards (% and _) are treated literally. */
                 search?: string;
             };
             header?: never;
@@ -369,6 +514,25 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "items": [
+                     *         {
+                     *           "id": "0194e6a0-1c2d-7b3e-9f10-2a3b4c5d6e7f",
+                     *           "title": "Shopping list",
+                     *           "content": "Milk, eggs, bread",
+                     *           "isArchived": false,
+                     *           "createdAtUtc": "2026-01-15T09:30:00+00:00"
+                     *         }
+                     *       ],
+                     *       "page": 1,
+                     *       "pageSize": 20,
+                     *       "totalCount": 1,
+                     *       "totalPages": 1,
+                     *       "hasNext": false,
+                     *       "hasPrevious": false
+                     *     }
+                     */
                     "application/json": components["schemas"]["PagedResultOfNoteResponse"];
                 };
             };
@@ -401,6 +565,12 @@ export interface operations {
         };
         requestBody: {
             content: {
+                /**
+                 * @example {
+                 *       "title": "Shopping list",
+                 *       "content": "Milk, eggs, bread"
+                 *     }
+                 */
                 "application/json": components["schemas"]["CreateNoteRequest"];
             };
         };
@@ -411,6 +581,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "id": "0194e6a0-1c2d-7b3e-9f10-2a3b4c5d6e7f",
+                     *       "title": "Shopping list",
+                     *       "content": "Milk, eggs, bread",
+                     *       "isArchived": false,
+                     *       "createdAtUtc": "2026-01-15T09:30:00+00:00"
+                     *     }
+                     */
                     "application/json": components["schemas"]["NoteResponse"];
                 };
             };
@@ -448,6 +627,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description The note's unique identifier (GUID). */
                 id: string;
             };
             cookie?: never;
@@ -497,6 +677,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description The note's unique identifier (GUID). */
                 id: string;
             };
             cookie?: never;
@@ -568,6 +749,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description The note's unique identifier (GUID). */
                 id: string;
             };
             cookie?: never;
@@ -679,6 +861,13 @@ export interface operations {
         };
         requestBody: {
             content: {
+                /**
+                 * @example {
+                 *       "email": "ada@example.com",
+                 *       "password": "Pa55word!",
+                 *       "useCookies": true
+                 *     }
+                 */
                 "application/json": components["schemas"]["LoginRequest"];
             };
         };
@@ -689,6 +878,13 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                     *       "expiresIn": 900,
+                     *       "refreshToken": null
+                     *     }
+                     */
                     "application/json": components["schemas"]["TokenResponse"];
                 };
             };
@@ -707,6 +903,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "title": "Unauthorized",
+                     *       "status": 401,
+                     *       "detail": "Invalid email or password.",
+                     *       "instance": "/api/auth/login",
+                     *       "errorCode": "auth.invalid_credentials",
+                     *       "traceId": "00-3a1f...-01"
+                     *     }
+                     */
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
@@ -861,6 +1067,13 @@ export interface operations {
         };
         requestBody: {
             content: {
+                /**
+                 * @example {
+                 *       "email": "ada@example.com",
+                 *       "password": "Pa55word!",
+                 *       "displayName": "Ada Lovelace"
+                 *     }
+                 */
                 "application/json": components["schemas"]["RegisterRequest"];
             };
         };
@@ -871,6 +1084,11 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "message": "Registration received. You can now sign in."
+                     *     }
+                     */
                     "application/json": components["schemas"]["MessageResponse"];
                 };
             };
@@ -909,7 +1127,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AdminPingResponse"];
+                    "application/json": components["schemas"]["MessageResponse"];
                 };
             };
             /** @description Unauthorized */

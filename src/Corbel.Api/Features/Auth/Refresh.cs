@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Identity;
 namespace Corbel.Features.Auth;
 
 /// <summary>Bearer-mode request body. In cookie mode the token is read from the httpOnly cookie instead.</summary>
+/// <param name="RefreshToken">The raw refresh token (bearer mode only). Leave null in cookie mode.</param>
 public sealed record RefreshRequest(string? RefreshToken);
 
 // Plain IRequest (not a transaction-wrapped command): reuse detection revokes the token family and then
@@ -49,6 +50,10 @@ public sealed class RefreshEndpoint : IEndpoint
             .WithTags("Auth")
             .AllowAnonymous()
             .RequireRateLimiting(RateLimitPolicies.Auth)
+            .WithSummary("Exchange a refresh token for a new access token.")
+            .WithDescription(
+                "Rotates the refresh token (the presented one is invalidated) and returns a fresh access token. In cookie mode the token is read from the httpOnly cookie and a valid CSRF token is required; in bearer mode it comes from the body. Replaying an already-rotated token revokes the whole family.\n\n"
+                + "**Errors:** 401 `auth.invalid_token` / `auth.token_reuse_detected` / `auth.account_locked`, 403 `common.forbidden` (missing/invalid CSRF), 429 `common.rate_limited`.")
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden);
 

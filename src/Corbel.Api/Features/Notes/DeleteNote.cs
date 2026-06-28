@@ -36,6 +36,10 @@ public sealed class DeleteNoteEndpoint : IEndpoint
             .WithName("DeleteNote")
             .WithTags("Notes")
             .RequireAuthorization()
+            .WithSummary("Delete a note.")
+            .WithDescription(
+                "Soft-deletes the caller's note (flagged deleted, not physically removed). Returns 204 on success; a missing or not-owned note returns 404.\n\n"
+                + "**Errors:** 401 `common.unauthorized`, 404 `note.not_found`, 409 `common.concurrency_conflict`, 429 `common.rate_limited`.")
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict); // xmin optimistic-concurrency conflict

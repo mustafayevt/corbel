@@ -31,6 +31,10 @@ public sealed class MeEndpoint : IEndpoint
             .WithName("Me")
             .WithTags("Auth")
             .RequireAuthorization()
+            .WithSummary("Get the current user's profile.")
+            .WithDescription(
+                "Returns the authenticated caller's identity and roles. In cookie mode the access token isn't readable by JS, so the SPA calls this on load to hydrate the session.\n\n"
+                + "**Errors:** 401 `common.unauthorized`, 429 `common.rate_limited`.")
             .ProducesProblem(StatusCodes.Status401Unauthorized);
 
     private static async Task<Ok<UserResponse>> Handle(ISender sender, CancellationToken cancellationToken)

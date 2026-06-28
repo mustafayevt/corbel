@@ -34,6 +34,10 @@ public sealed class GetNoteEndpoint : IEndpoint
             .WithName("GetNote")
             .WithTags("Notes")
             .RequireAuthorization()
+            .WithSummary("Get a note by id.")
+            .WithDescription(
+                "Returns the caller's note. A note that doesn't exist — or exists but belongs to another user — returns the same 404 (ownership is never disclosed).\n\n"
+                + "**Errors:** 401 `common.unauthorized`, 404 `note.not_found`, 429 `common.rate_limited`.")
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status404NotFound);
 

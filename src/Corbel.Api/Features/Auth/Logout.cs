@@ -1,4 +1,5 @@
 using Corbel.Common.Exceptions;
+using Corbel.Common.Messaging;
 using Corbel.Common.Web;
 using Corbel.Infrastructure.Auth;
 using Mediator;
@@ -7,6 +8,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 namespace Corbel.Features.Auth;
 
 /// <summary>Bearer-mode body; in cookie mode the refresh token is read from the httpOnly cookie.</summary>
+/// <param name="RefreshToken">The raw refresh token to revoke (bearer mode only). Leave null in cookie mode.</param>
 public sealed record LogoutRequest(string? RefreshToken);
 
 public sealed record LogoutCommand(string? RawToken) : IRequest<MessageResponse>;
@@ -35,6 +37,10 @@ public sealed class LogoutEndpoint : IEndpoint
             // the body and is unaffected.
             .AllowAnonymous()
             .RequireRateLimiting(RateLimitPolicies.Auth)
+            .WithSummary("Sign out and revoke the refresh token.")
+            .WithDescription(
+                "Revokes the presented refresh token's whole family and clears the auth cookies. Allowed anonymously so an expired access token can still sign out; cookie mode requires a valid CSRF token.\n\n"
+                + "**Errors:** 403 `common.forbidden` (missing/invalid CSRF), 429 `common.rate_limited`.")
             .ProducesProblem(StatusCodes.Status403Forbidden);
 
     private static async Task<Ok<MessageResponse>> Handle(

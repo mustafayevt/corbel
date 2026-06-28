@@ -57,6 +57,11 @@ public sealed class ListNotesEndpoint : IEndpoint
             .WithName("ListNotes")
             .WithTags("Notes")
             .RequireAuthorization()
+            .WithSummary("List the caller's notes.")
+            .WithDescription(
+                "Returns a page of the authenticated caller's notes, newest first, in the standard paged envelope. "
+                + "Filter with `search` (case-insensitive substring over title and content; LIKE wildcards are literal).\n\n"
+                + "**Errors:** 401 `common.unauthorized`, 429 `common.rate_limited`.")
             .ProducesProblem(StatusCodes.Status401Unauthorized);
 
     private static async Task<Ok<PagedResult<NoteResponse>>> Handle(

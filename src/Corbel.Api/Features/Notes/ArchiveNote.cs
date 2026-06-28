@@ -36,6 +36,10 @@ public sealed class ArchiveNoteEndpoint : IEndpoint
             .WithName("ArchiveNote")
             .WithTags("Notes")
             .RequireAuthorization()
+            .WithSummary("Archive a note.")
+            .WithDescription(
+                "Marks the caller's note as archived. Archiving an already-archived note violates a domain invariant and is rejected with 422.\n\n"
+                + "**Errors:** 401 `common.unauthorized`, 404 `note.not_found`, 409 `common.concurrency_conflict`, 422 `note.already_archived`, 429 `common.rate_limited`.")
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict) // xmin optimistic-concurrency conflict

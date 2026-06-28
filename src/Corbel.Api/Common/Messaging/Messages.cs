@@ -9,3 +9,7 @@ namespace Corbel.Common.Messaging;
 /// deliberately don't reuse martinothamar's built-in ICommand/IQuery — those are a separate handler hierarchy.)
 /// </summary>
 public interface IWriteCommand : IMessage;
+
+/// <summary>A simple <c>{ message }</c> envelope for endpoints that return only a human-readable acknowledgement.</summary>
+/// <param name="Message">A short, client-safe message describing the outcome.</param>
+public sealed record MessageResponse(string Message);

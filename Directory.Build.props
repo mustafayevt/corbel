@@ -9,8 +9,10 @@
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!-- Don't force XML docs on every public member; OpenAPI uses the ones we do write. -->
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!-- Don't force XML docs on every public member; OpenAPI uses the ones we do write. CS1573: endpoint
+         handlers document only the route/query/body params that surface in OpenAPI, not injected services
+         (ISender, CancellationToken, HttpContext, …). -->
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
     <!-- Audit all (direct + transitive) packages for advisories; NU190x become errors in CI (warnings-as-errors). -->
     <NuGetAudit>true</NuGetAudit>
     <NuGetAuditMode>all</NuGetAuditMode>

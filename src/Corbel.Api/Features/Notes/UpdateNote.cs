@@ -1,6 +1,6 @@
-using Corbel.Common;
 using Corbel.Common.Abstractions;
 using Corbel.Common.Messaging;
+using Corbel.Common.Validation;
 using Corbel.Common.Web;
 using Corbel.Infrastructure.Persistence;
 using FluentValidation;
@@ -11,6 +11,8 @@ using Microsoft.EntityFrameworkCore;
 namespace Corbel.Features.Notes;
 
 /// <summary>The mutable body — the id is taken from the route, so it never appears in the request schema.</summary>
+/// <param name="Title">The note's new title (required).</param>
+/// <param name="Content">The note's new body (optional).</param>
 public sealed record UpdateNoteRequest(string Title, string? Content);
 
 public sealed record UpdateNoteCommand(Guid Id, string Title, string? Content) : IRequest<NoteResponse>, IWriteCommand;
@@ -19,8 +21,8 @@ public sealed class UpdateNoteValidator : AbstractValidator<UpdateNoteCommand>
 {
     public UpdateNoteValidator()
     {
-        RuleFor(x => x.Title).NotEmpty().MaximumLength(NoteConstraints.TitleMaxLength);
-        RuleFor(x => x.Content).MaximumLength(NoteConstraints.ContentMaxLength);
+        RuleFor(x => x.Title).NoteTitle();
+        RuleFor(x => x.Content).NoteContent();
     }
 }
 
@@ -50,6 +52,10 @@ public sealed class UpdateNoteEndpoint : IEndpoint
             .WithName("UpdateNote")
             .WithTags("Notes")
             .RequireAuthorization()
+            .WithSummary("Replace a note's title and content.")
+            .WithDescription(
+                "Updates a note the caller owns. A missing or not-owned note returns the same 404 (ownership is never disclosed).\n\n"
+                + "**Errors:** 400 `common.validation`, 401 `common.unauthorized`, 404 `note.not_found`, 409 `common.concurrency_conflict`, 429 `common.rate_limited`.")
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict) // xmin optimistic-concurrency conflict

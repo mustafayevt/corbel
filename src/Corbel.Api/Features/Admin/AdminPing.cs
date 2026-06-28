@@ -1,3 +1,4 @@
+using Corbel.Common.Messaging;
 using Corbel.Common.Web;
 using Microsoft.AspNetCore.Http.HttpResults;
 
@@ -11,10 +12,12 @@ public sealed class AdminPingEndpoint : IEndpoint
             .WithName("AdminPing")
             .WithTags("Admin")
             .RequireAuthorization(AuthorizationPolicies.Admin)
+            .WithSummary("Admin-only ping.")
+            .WithDescription(
+                "Returns a simple acknowledgement. Requires the `Admin` role; an authenticated caller without it gets 403.\n\n"
+                + "**Errors:** 401 `common.unauthorized`, 403 `common.forbidden`, 429 `common.rate_limited`.")
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden);
 
-    private static Ok<AdminPingResponse> Handle() => TypedResults.Ok(new AdminPingResponse("pong"));
+    private static Ok<MessageResponse> Handle() => TypedResults.Ok(new MessageResponse("pong"));
 }
-
-public sealed record AdminPingResponse(string Message);

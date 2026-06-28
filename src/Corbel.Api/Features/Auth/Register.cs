@@ -10,6 +10,10 @@ using Microsoft.AspNetCore.Identity;
 
 namespace Corbel.Features.Auth;
 
+/// <summary>A new-account registration request.</summary>
+/// <param name="Email">The email address to register; also becomes the username.</param>
+/// <param name="Password">The account password. Must meet the complexity policy (min length, upper, lower, digit).</param>
+/// <param name="DisplayName">An optional display name.</param>
 public sealed record RegisterCommand(string Email, string Password, string? DisplayName) : IRequest<MessageResponse>, IWriteCommand;
 
 public sealed class RegisterValidator : AbstractValidator<RegisterCommand>
@@ -83,6 +87,10 @@ public sealed class RegisterEndpoint : IEndpoint
             .WithTags("Auth")
             .AllowAnonymous()
             .RequireRateLimiting(RateLimitPolicies.Auth)
+            .WithSummary("Register a new account.")
+            .WithDescription(
+                "Creates a user with the default role. To prevent account enumeration, the response is an identical acknowledgement whether or not the email was already registered — this endpoint never returns 409.\n\n"
+                + "**Errors:** 400 `common.validation`, 429 `common.rate_limited`.")
             .ProducesValidationProblem();
 
     private static async Task<Ok<MessageResponse>> Handle(
