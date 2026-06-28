@@ -1,0 +1,203 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (.NET 10)
+    runs-on: ubuntu-latest
+    # Cap the job so a stuck Testcontainers image pull can't burn the 6h default budget.
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: 10.0.x
+
+      # Lock files are not committed, so cache the global NuGet folder keyed on the central manifest.
+      - name: Cache NuGet packages
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '.config/dotnet-tools.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      # ContinuousIntegrationBuild turns NuGetAudit advisories (NU190x) into errors, so a vulnerable
+      # direct or transitive package fails restore here (see NuGetAudit* in Directory.Build.props).
+      - name: Restore
+        run: dotnet restore Corbel.slnx -p:ContinuousIntegrationBuild=true
+
+      # ContinuousIntegrationBuild promotes warnings to errors (see Directory.Build.props).
+      - name: Build
+        run: dotnet build Corbel.slnx -c Release -p:ContinuousIntegrationBuild=true --no-restore
+
+      # Integration tests spin up Postgres via Testcontainers; Docker is preinstalled on the runner.
+      - name: Test
+        run: dotnet test Corbel.slnx -c Release --no-build --verbosity normal
+
+      - name: Verify formatting
+        run: dotnet format Corbel.slnx --verify-no-changes
+
+  frontend:
+    name: Frontend (Node 22)
+    runs-on: ubuntu-latest
+    # Cap the job so a hung install / Playwright browser download can't burn the 6h default budget.
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      # Corepack activates the pnpm version pinned in web/package.json; enable it before setup-node
+      # so setup-node can find pnpm for its dependency cache.
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm -C web install --frozen-lockfile
+
+      # Biome is the primary lint + format gate; --error-on-warnings makes warnings fail CI.
+      - name: Check (Biome)
+        run: pnpm -C web run lint:ci
+
+      # ESLint runs ONLY the architecture import-boundary + kebab-naming + React-Compiler rules Biome can't.
+      - name: Lint architecture boundaries (ESLint)
+        run: pnpm -C web run lint:boundaries
+
+      # Component/integration tests run on happy-dom with MSW-mocked HTTP — no backend required.
+      # Coverage thresholds (vite.config) fail the build if breadth regresses.
+      - name: Test + coverage (Vitest)
+        run: pnpm -C web run test:coverage
+
+      # `vite build` runs in the E2E step below (Playwright's webServer builds the bundle it serves, and
+      # reuseExistingServer is off in CI), so here we only typecheck — no double production build.
+      - name: Typecheck
+        run: pnpm -C web run typecheck
+
+      # Backend-independent: Playwright's webServer builds + serves the static SPA, and the login→notes
+      # flow mocks /api in-browser via page.route, so the full user flow + axe a11y scans run with no API.
+      - name: Install Playwright browser
+        run: pnpm -C web exec playwright install --with-deps chromium
+
+      - name: E2E (Playwright)
+        run: pnpm -C web run e2e
+
+  contract:
+    name: API contract (OpenAPI ↔ typed client)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # The typed client is generated from the live OpenAPI document, kept in sync only by `just gen-client`.
+    # Regenerate it here and fail if it drifts from what's committed, so a contract change that forgot to
+    # regenerate can't merge a green build whose client lies about the real API.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: corbel
+        ports:
+          - "5432:5432"
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Cache NuGet packages
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '.config/dotnet-tools.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: Install web dependencies
+        run: pnpm -C web install --frozen-lockfile
+
+      - name: Install just
+        uses: extractions/setup-just@dd310ad5a97d8e7b41793f8ef055398d51ad4de6 # v2
+
+      # Run the SAME recipe humans run locally, so CI verifies the exact documented command (no duplicated
+      # boot/poll logic). The recipe boots the API against the postgres service above and regenerates both files.
+      - name: Regenerate OpenAPI document + typed client
+        env:
+          ConnectionStrings__corbel: "Host=localhost;Port=5432;Database=corbel;Username=postgres;Password=postgres"
+          Jwt__SigningKey: "ci-openapi-contract-signing-key-please-change-0123456789"
+        run: just gen-client
+
+      - name: Fail on contract drift
+        run: |
+          if ! git diff --exit-code -- openapi.json web/src/types/schema.d.ts; then
+            echo "::error::openapi.json / web/src/types/schema.d.ts are out of date. Run 'just gen-client' and commit the result."
+            exit 1
+          fi
+
+  docker:
+    name: Container images
+    runs-on: ubuntu-latest
+    # Image builds compile both stacks again; cap it so a stuck pull can't run away.
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      # compose interpolates and requires `.env` to exist; the values are irrelevant to the image build
+      # (no build args reference them), so the committed example is enough to keep `compose build` happy.
+      - name: Provide compose env
+        run: cp .env.example .env
+
+      # Build both images so Dockerfile / compose drift is caught here (the runners ship Docker + Buildx).
+      - name: Build images
+        run: docker compose build
+
+  # deploy:
+  #   name: Deploy
+  #   needs: [backend, frontend]
+  #   if: github.ref == 'refs/heads/main'
+  #   runs-on: ubuntu-latest
+  #   environment: production
+  #   permissions:
+  #     contents: read
+  #     packages: write
+  #   steps:
+  #     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+  #     - name: Build & push container image
+  #       run: echo "TODO: docker buildx build --push (or dotnet publish --container) to your registry"
+  #     - name: Release
+  #       run: echo "TODO: kubectl / helm / flyctl / az containerapp up ..."

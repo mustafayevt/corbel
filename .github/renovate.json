@@ -1,0 +1,32 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    ":semanticCommitTypeAll(chore)",
+    "group:monorepos",
+    "helpers:pinGitHubActionDigests",
+    "docker:pinDigests"
+  ],
+  "timezone": "Etc/UTC",
+  "schedule": ["before 6am on monday"],
+  "labels": ["dependencies"],
+  "packageRules": [
+    {
+      "description": "Batch all non-major NuGet + npm updates into a single PR.",
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "groupName": "all non-major dependencies",
+      "groupSlug": "all-minor-patch"
+    },
+    {
+      "description": "Keep the .NET Aspire hosting packages in lockstep.",
+      "matchPackageNames": ["/^Aspire\\./"],
+      "groupName": "aspire"
+    },
+    {
+      "description": "Keep the OpenTelemetry packages together.",
+      "matchPackageNames": ["/^OpenTelemetry\\./"],
+      "groupName": "opentelemetry"
+    }
+  ]
+}

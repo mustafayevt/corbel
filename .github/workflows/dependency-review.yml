@@ -1,0 +1,32 @@
+name: Dependency Review
+
+# Gates the dependency graph (npm + NuGet) on every PR, failing if a change pulls in a package with a known
+# vulnerability at or above `fail-on-severity`. This is the npm-side vulnerability gate; the backend is also
+# covered at build time by NuGetAudit. Licence gating is opt-in — see the commented deny/allow lists below.
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4
+        with:
+          # Matches the backend's NuGetAuditLevel=moderate so both gates agree on what's "too risky to merge".
+          fail-on-severity: moderate
+          # Opt in to a licence policy by uncommenting one of these (SPDX expressions):
+          # deny-licenses: GPL-3.0, AGPL-3.0
+          # allow-licenses: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC
