@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+/* Class-based dark mode: toggle by adding `dark` to <html>. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Design tokens. Light + dark palettes live as raw CSS variables; `@theme inline` re-exports them as
+ * Tailwind color/radius utilities (bg-background, text-foreground, border-border, rounded-lg, ...).
+ */
+:root {
+  --radius: 0.65rem;
+
+  --background: oklch(0.99 0.002 264);
+  --foreground: oklch(0.21 0.013 264);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.21 0.013 264);
+
+  --muted: oklch(0.968 0.004 264);
+  --muted-foreground: oklch(0.52 0.014 264);
+
+  --primary: oklch(0.51 0.193 274);
+  --primary-foreground: oklch(0.985 0.003 264);
+
+  --secondary: oklch(0.968 0.004 264);
+  --secondary-foreground: oklch(0.27 0.013 264);
+
+  --accent: oklch(0.95 0.012 274);
+  --accent-foreground: oklch(0.3 0.07 274);
+
+  --destructive: oklch(0.58 0.215 27);
+  --destructive-foreground: oklch(0.985 0.003 264);
+
+  --border: oklch(0.922 0.004 264);
+  --input: oklch(0.922 0.004 264);
+  --ring: oklch(0.51 0.193 274);
+}
+
+.dark {
+  --background: oklch(0.18 0.012 264);
+  --foreground: oklch(0.96 0.003 264);
+
+  --card: oklch(0.22 0.013 264);
+  --card-foreground: oklch(0.96 0.003 264);
+
+  --muted: oklch(0.27 0.013 264);
+  --muted-foreground: oklch(0.7 0.012 264);
+
+  --primary: oklch(0.62 0.18 274);
+  --primary-foreground: oklch(0.16 0.012 264);
+
+  --secondary: oklch(0.27 0.013 264);
+  --secondary-foreground: oklch(0.96 0.003 264);
+
+  --accent: oklch(0.3 0.03 274);
+  --accent-foreground: oklch(0.92 0.02 274);
+
+  --destructive: oklch(0.66 0.19 27);
+  --destructive-foreground: oklch(0.16 0.012 264);
+
+  --border: oklch(0.32 0.012 264);
+  --input: oklch(0.34 0.012 264);
+  --ring: oklch(0.62 0.18 274);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    color-scheme: light dark;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family:
+      ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+}

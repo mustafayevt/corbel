@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <!-- Rebranding the template? Update this <title> and the favicon to match VITE_APP_NAME. This is the first
+         paint (before React sets document.title) and the no-JS title. Don't use Vite's percent-delimited HTML env
+         interpolation here (wrapping VITE_APP_NAME in percent signs): an unset var renders the literal placeholder,
+         which is worse than a sensible hardcoded default. -->
+    <title>Corbel</title>
+    <!-- External (not inline) so it satisfies the strict `script-src 'self'` CSP. Blocking + in <head> so the
+         color-mode class is set before first paint — no light flash on a dark-preference reload. -->
+    <script src="/theme-init.js"></script>
+  </head>
+  <body class="h-full">
+    <div id="root" class="h-full"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

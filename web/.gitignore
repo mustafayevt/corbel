@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Test / tooling artifacts
+coverage/
+playwright-report/
+test-results/
+.vitest/
+
+# Local env (only .env.example is committed)
+.env
+.env.local
+.env.*.local
+
+# Editor / OS
+.DS_Store
+*.log
