@@ -1,0 +1,90 @@
+# Production-like local stack: Postgres + API + web (nginx). Run with `just up` (docker compose up --build).
+# Configuration comes from `.env` (copy from `.env.example`). Aspire (`just dev`) is the inner-loop
+# alternative; this file is what you would adapt for a real deployment.
+name: corbel
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    # Starting-point resource caps; uncomment + tune for a real deployment (and adapt to your orchestrator).
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: "1.0"
+    #       memory: 512M
+
+  api:
+    build:
+      context: .
+      dockerfile: src/Corbel.Api/Dockerfile
+    restart: unless-stopped
+    # Each service declares only the env it needs (no shared env_file), so Postgres never receives the API secrets.
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__corbel: ${ConnectionStrings__corbel}
+      Database__MigrateOnStartup: ${Database__MigrateOnStartup}
+      Jwt__Issuer: ${Jwt__Issuer}
+      Jwt__Audience: ${Jwt__Audience}
+      Jwt__SigningKey: ${Jwt__SigningKey}
+      Seed__AdminEmail: ${Seed__AdminEmail}
+      Seed__AdminPassword: ${Seed__AdminPassword}
+      # Auth-cookie transport (see .env.example) — default to production-safe values when unset in .env, so
+      # flipping CookieAuth__Secure / CookieAuth__SameSite for non-localhost HTTP testing actually takes effect.
+      CookieAuth__Secure: ${CookieAuth__Secure:-true}
+      CookieAuth__SameSite: ${CookieAuth__SameSite:-Lax}
+    # Block privilege escalation via setuid binaries; a read-only root filesystem is the recommended next step.
+    security_opt: ["no-new-privileges:true"]
+    expose:
+      - "8080"
+    # No container healthcheck: the chiseled API image is shell-free (no curl/wget), so it can't probe
+    # its own /health/ready. In a real orchestrator use an HTTP readiness probe (k8s httpGet); under
+    # compose the best we can do is gate the API on a healthy Postgres (below) and let web start after it.
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Starting-point resource caps; uncomment + tune for a real deployment.
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: "1.0"
+    #       memory: 512M
+
+  # The web image (built by the frontend slice) serves the built SPA via nginx and reverse-proxies
+  # /api -> http://api:8080, so the browser only ever talks to one same-origin host. nginx (rootless,
+  # nginx-unprivileged) listens on 8080 in-container; host :8080 is published below.
+  web:
+    build:
+      context: ./web
+    restart: unless-stopped
+    # Block privilege escalation via setuid binaries; a read-only root filesystem is the recommended next step.
+    security_opt: ["no-new-privileges:true"]
+    ports:
+      - "8080:8080"
+    # Only waits for the API process to start (service_started), not for readiness — the shell-free
+    # API can't expose a container healthcheck (see above), so nginx may briefly return 502 on /api
+    # until Kestrel is listening; the SPA tolerates that and retries.
+    depends_on:
+      api:
+        condition: service_started
+    # Starting-point resource caps; uncomment + tune for a real deployment.
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: "0.5"
+    #       memory: 128M
+
+volumes:
+  postgres-data:
