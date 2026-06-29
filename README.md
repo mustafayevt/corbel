@@ -39,10 +39,18 @@ rather than shipped by default.
 
 ## Prerequisites
 
-- [.NET 10 SDK](https://dotnet.microsoft.com/download) (10.0.301+)
-- [Node 22](https://nodejs.org/) with [pnpm](https://pnpm.io/) (via `corepack enable`)
-- [Docker](https://www.docker.com/) (for Postgres, Testcontainers and `just up`)
-- [just](https://github.com/casey/just) command runner (optional but recommended)
+Four tools. Install commands per platform:
+
+| Tool                                                                | Windows (`winget`)                       | macOS (Homebrew)                  | Linux                                                              |
+| ------------------------------------------------------------------- | ---------------------------------------- | --------------------------------- | ----------------------------------------------------------------- |
+| [.NET 10 SDK](https://dotnet.microsoft.com/download) (10.0.301+)    | `winget install Microsoft.DotNet.SDK.10` | `brew install --cask dotnet-sdk`  | [Microsoft docs](https://learn.microsoft.com/dotnet/core/install/linux) |
+| [Node 22](https://nodejs.org/) + [pnpm](https://pnpm.io/)           | `winget install OpenJS.NodeJS.LTS`       | `brew install node@22`            | [nodejs.org](https://nodejs.org/) or `nvm`                        |
+| [Docker](https://www.docker.com/) (Postgres, Testcontainers, `up`)  | [Docker Desktop](https://www.docker.com/products/docker-desktop/) | `brew install --cask docker` | [Docker Engine](https://docs.docker.com/engine/install/)          |
+| [just](https://github.com/casey/just) command runner                | `winget install Casey.Just`              | `brew install just`               | [package / prebuilt binary](https://github.com/casey/just#packages) |
+
+After installing Node, turn on pnpm with `corepack enable`. `just` is the recommended entry point — every
+workflow is a recipe — and it runs natively on all three OSes (on Windows it drives the recipes through
+PowerShell, so no Git Bash or WSL is needed). Each recipe is a thin wrapper you can also run by hand.
 
 ## Quickstart
 
@@ -163,30 +171,60 @@ design time). The committed migration is applied automatically at startup in dev
 
 ## Making it your own
 
-After **Use this template** (or a clone), rename the project and fix up the few things tied to your
-identity that a token rewrite can't infer:
+A full walkthrough from zero to a running app under your own name. The steps are identical on Windows, macOS
+and Linux — only the tool-install commands differ ([Prerequisites](#prerequisites)).
+
+**1. Install the toolchain.** .NET 10 SDK, Node 22 + pnpm, Docker and the `just` runner — per-OS commands are
+in [Prerequisites](#prerequisites). Start Docker (Desktop on Windows/macOS) so Postgres and Testcontainers can
+run, then confirm everything is on your PATH:
 
 ```bash
-just rename Acme
+just --version && dotnet --version && node --version && pnpm --version && docker --version
 ```
 
-`rename` rewrites the `Corbel`/`corbel` token across source, project, solution and config files, then renames
-the matching files and folders. Review with `git diff`, then `dotnet build && just test`.
+**2. Get the code.** Click **Use this template** on GitHub (or clone), then enter the folder:
 
-> **On Windows?** This works natively — no Git Bash or WSL required. The recipes run through PowerShell
-> (`set windows-shell` in the `justfile`), and the three bash-heavy recipes (`rename`, `bootstrap`,
-> `gen-client`) have PowerShell ports under `eng/windows/` that `just` selects automatically. Install `just`
-> (`winget install Casey.Just`) alongside the prerequisites above, then run `just rename Acme` from any
-> terminal. (Git Bash or WSL still work if you prefer them.)
+```bash
+git clone <your-repo-url> && cd <your-repo>
+```
 
-Then do the manual one-time edits (your owner/org and contacts are unknowable to the script):
+**3. Rename it to your project.** This rewrites both the `Corbel` and `corbel` tokens across source, project,
+solution and config files (npm package name, DB/service names, JWT issuer/audience, OTel service name, the
+`corbel-api` user-secrets id), then renames the matching files and folders:
+
+```bash
+just rename Acme        # use a simple alphanumeric name
+```
+
+Review the result with `git diff`. Skipping this is fine too — the template runs as "Corbel" out of the box.
+
+> **Windows:** `just rename` runs natively through PowerShell — no Git Bash or WSL. If you'd rather not install
+> `just` just to rename, run the port directly:
+> `powershell -NoProfile -ExecutionPolicy Bypass -File eng/windows/rename.ps1 Acme`.
+
+**4. Fix the few identity bits a script can't infer:**
 
 - [ ] `README.md` — replace `your-org` in the CI badge URLs (top of this file) with your GitHub `owner/repo`.
       (The OpenAPI contact URL in `src/Corbel.Api/Setup/DocumentInfoTransformer.cs` uses the same placeholder.)
 - [ ] `SECURITY.md` — set the private security-contact address (the `security@example.com` placeholder).
 - [ ] On GitHub, set the repo **About** blurb and topics (e.g. `dotnet`, `aspnetcore`, `react`, `vite`,
       `vertical-slice`, `template`) so others can discover it.
-- [ ] `just bootstrap` to generate local secrets, then `dotnet build && just test`.
+
+**5. Bootstrap and run.** `bootstrap` trusts the dev HTTPS cert, generates a random JWT key + a dev admin
+password into user-secrets (no secret ships in the repo) and creates `.env`; `dev` launches the Aspire AppHost
+(Postgres + API + SPA + dashboard):
+
+```bash
+just bootstrap && just dev
+```
+
+**6. Verify.** Build clean and run the tests (Testcontainers needs Docker running):
+
+```bash
+dotnet build && just test
+```
+
+That's it — a renamed, running app. Write feature #1: see [Adding a vertical slice](#adding-a-vertical-slice).
 
 ## Security & data notes
 
