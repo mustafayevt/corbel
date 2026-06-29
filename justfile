@@ -1,7 +1,12 @@
 # Corbel task runner. Run `just` (or `just --list`) to see every recipe.
 # Requires: just, .NET 10 SDK, Node 22 + pnpm (via corepack), Docker.
+# Cross-platform: macOS/Linux run recipes via bash; Windows runs them via PowerShell (see set windows-shell).
 
 set shell := ["bash", "-uc"]
+# On Windows, run recipes through PowerShell instead of bash. The bash-heavy recipes (bootstrap, gen-client,
+# rename) have a [windows] variant that delegates to a PowerShell port under eng/windows/; the rest are plain
+# dotnet/pnpm/docker invocations that work unchanged in either shell.
+set windows-shell := ["powershell.exe", "-NoLogo", "-NoProfile", "-Command"]
 set dotenv-load := false
 
 api := "src/Corbel.Api"
@@ -19,6 +24,7 @@ tools:
 
 # One-time local setup: restore tools, trust the dev HTTPS cert, put a random JWT key + dev admin password
 # into user-secrets (no secrets ship in the repo), and create .env.
+[unix]
 bootstrap: tools
     dotnet dev-certs https --trust
     # Install the repo-root dev tooling so the Biome pre-commit hook (husky) is wired up locally. Non-fatal
@@ -38,6 +44,11 @@ bootstrap: tools
         echo "Dev admin will be seeded on first run — login: admin@corbel.local / $pw"; \
     fi
     @if [ -f .env ]; then echo ".env already exists; leaving it."; else cp .env.example .env && echo "Created .env from .env.example — edit it before 'just up'."; fi
+
+# Windows: same setup via PowerShell (openssl/grep/cp aren't available in a stock shell).
+[windows]
+bootstrap: tools
+    powershell -NoProfile -ExecutionPolicy Bypass -File eng/windows/bootstrap.ps1
 
 # Run the full stack (API + Postgres + web) for the inner dev loop via .NET Aspire.
 # (Aspire starts the Vite app only when pnpm is on PATH — true in a terminal. From an IDE whose PATH lacks
@@ -62,6 +73,7 @@ add-migration name: tools
 # Regenerate the typed frontend client from the API's live OpenAPI document.
 # Boots the API (needs a reachable Postgres — start one first via `just dev` or `docker compose up -d postgres`),
 # curls /openapi/v1.json into ./openapi.json, then runs the openapi-typescript generator over it.
+[unix]
 gen-client:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -80,6 +92,11 @@ gen-client:
     pnpm -C {{web}} run gen:client
     echo "Regenerated web/src/types/schema.d.ts from openapi.json — review with 'git diff'."
 
+# Windows: same flow via PowerShell.
+[windows]
+gen-client:
+    powershell -NoProfile -ExecutionPolicy Bypass -File eng/windows/gen-client.ps1
+
 # Run the backend test suite.
 test:
     dotnet test {{solution}}
@@ -92,6 +109,7 @@ up:
 # Rewrites BOTH the PascalCase token (Corbel -> Acme) and the lowercase token (corbel -> acme: npm package
 # name, db/service names, JWT issuer/audience, OTel service name, the "corbel-api" user-secrets id) inside
 # text files, then renames matching files and folders. Use a simple alphanumeric name. Review with `git diff`.
+[unix]
 rename NEW:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -116,3 +134,8 @@ rename NEW:
           [ "$p" != "$np" ] && mv "$p" "$np"
         done
     echo "Done. Review with 'git diff', then run: just bootstrap && dotnet build && just test"
+
+# Windows: same rename via PowerShell.
+[windows]
+rename NEW:
+    powershell -NoProfile -ExecutionPolicy Bypass -File eng/windows/rename.ps1 {{NEW}}

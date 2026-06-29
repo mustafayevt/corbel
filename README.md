@@ -173,6 +173,12 @@ just rename Acme
 `rename` rewrites the `Corbel`/`corbel` token across source, project, solution and config files, then renames
 the matching files and folders. Review with `git diff`, then `dotnet build && just test`.
 
+> **On Windows?** This works natively — no Git Bash or WSL required. The recipes run through PowerShell
+> (`set windows-shell` in the `justfile`), and the three bash-heavy recipes (`rename`, `bootstrap`,
+> `gen-client`) have PowerShell ports under `eng/windows/` that `just` selects automatically. Install `just`
+> (`winget install Casey.Just`) alongside the prerequisites above, then run `just rename Acme` from any
+> terminal. (Git Bash or WSL still work if you prefer them.)
+
 Then do the manual one-time edits (your owner/org and contacts are unknowable to the script):
 
 - [ ] `README.md` — replace `your-org` in the CI badge URLs (top of this file) with your GitHub `owner/repo`.

@@ -3,6 +3,7 @@
 * text=auto eol=lf
 
 *.sh    text eol=lf
+*.ps1   text eol=lf
 *.cs    text eol=lf
 *.csproj text eol=lf
 *.props text eol=lf
